@@ -11,13 +11,10 @@ https://github.com/jdwhitfield/Julia-qFenwick.
 
 The primary reference is our work:
 
- Operator Locality in Quantum Simulation of Fermionic Models
- 
- Vojtěch Havlíček, Matthias Troyer, James D. Whitfield
- 
- Phys. Rev. A 95, 032332 (2017) 
- 
- https://arxiv.org/pdf/1701.07072.pdf
+ > Operator Locality in Quantum Simulation of Fermionic Models 
+ > Vojtěch Havlíček, Matthias Troyer, James D. Whitfield 
+ > Phys. Rev. A 95, 032332 (2017)  
+ > https://arxiv.org/pdf/1701.07072.pdf
 
 
 James D. Whitfield @ Dartmouth.Edu
