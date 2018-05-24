@@ -5,7 +5,7 @@ emerging quantum computing architectures. Limitations of small scale quantum com
 help inform the roadmap to the future and here we present new tools for creating qubit operators
 for fermionic systems. 
 
-The Fenwick tree approach to fermion-to-qubit mappings is implemented in the Julia Language. A similar Python implementation found in https://github.com/quantumlib/OpenFermion as contributed by @VojtaHavlicek.
+The Fenwick tree approach to fermion-to-qubit mappings is implemented in the Julia Language. A similar Python implementation found in https://github.com/quantumlib/OpenFermion as contributed by https://github.com/VojtaHavlicek.
 
 
 In the technical note, we give an introduction and a summary of our generalized
