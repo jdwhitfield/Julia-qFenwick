@@ -18,4 +18,4 @@ parity tree forms the crux of our general approach. The primary reference for th
  > https://arxiv.org/pdf/1701.07072.pdf  
 
 
-James D. Whitfield @ Dartmouth.Edu
+James. D. Whitfield @ Dartmouth.Edu
