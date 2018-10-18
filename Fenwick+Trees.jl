@@ -334,9 +334,109 @@ ct=CombineTrees(pt.Parents,pt.Parents)
 #% Tensor algebra and Spin algebra  #
 #%###################################
 
-include("Spin_Algebra.jl")
 
-#%###################################
+#%       PrintPauliList(PauliList)
+#%       PrintPauliLists(PauliLists)
+
+#Pauli list
+temp = Base.isdefined(Base,:PauliList)
+if( temp == false ) 
+  mutable struct PauliList
+    Prefactor::Complex
+    List::Array{Complex}
+  end
+end
+
+function PrintPauliList(p::PauliList)
+  #correct the state
+  P=StandardForm(p)
+
+  #These are the MatrixIDs for coding the algebra
+  I   =1;
+  X   =2;
+  Y   =3;
+  Z   =4;
+  P00 =5;
+  P01 =6;
+  P10 =7;
+  P11 =8;
+
+  #printing
+  print("(")
+  if(real(P.Prefactor)>=0) #add plus sign to make it look better
+    print("+")
+  end
+  print(P.Prefactor)
+  print(") ")
+  for i=1:length(P.List)
+    if(P.List[i]==I)
+      print("  I  ")
+    end
+    if(P.List[i]==X)
+      print("  X  ")
+    end
+    if(P.List[i]==Y)
+      print("  Y  ")
+    end
+    if(P.List[i]==Z)
+      print("  Z  ")
+    end
+    if(P.List[i]==P00)
+      print(" P00 ")
+    end
+    if(P.List[i]==P01)
+      print(" P01 ")
+    end
+    if(P.List[i]==P10)
+      print(" P10 ")
+    end
+    if(P.List[i]==P11)
+      print(" P11 ")
+    end
+  end
+  println("")
+  return
+end
+
+function PrintPauliLists(arrayPL)
+
+  if(string(typeof(arrayPL))=="PauliList")
+    arrayPL=[arrayPL];
+  end
+
+  if(string(typeof(arrayPL[1]))!="PauliList")
+    println("Warning: bad input; expected array of PauliLists in function Print_sum")
+  end
+
+  for k=1:length(arrayPL)
+    if(k>1)
+      print("    +")
+    else
+      print("op = ")
+    end
+    Print(arrayPL[k])
+  end
+end
+
+function Print(P)
+  if(string(typeof(P))=="PauliList")
+    PrintPauliList(P)
+    return;
+  end
+  if( string(typeof(P))=="Array{PauliList,1}")
+    PrintPauliLists(P)
+    return;
+  end
+  if( string(typeof(P))=="Vector{PauliList}" )
+    PrintPauliLists(P)
+    return;
+  end
+  println(typeof(P))
+  println(P)
+  return;
+end
+
+include("Spin_Algebra.jl")
 
 #%###################################
 #%       Fermionic operators        #
