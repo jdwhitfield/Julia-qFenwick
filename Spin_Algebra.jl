@@ -73,7 +73,7 @@ P11 =8;
 
 function GetSpinAlgebra()
 
-   SPIN_ALGEBRA=zeros(Complex64,8,8)
+   SPIN_ALGEBRA=zeros(Complex,8,8)
    #These are the MatrixIDs for coding algebra
    I   =1;
    X   =2;

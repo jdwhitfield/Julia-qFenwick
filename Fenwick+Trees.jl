@@ -469,22 +469,22 @@ function c_op(j,PT::PTree)
 
   #Z_{DisjointRoots}
   roots=DisjointRoots(j,PT)
-  ops[roots]=Z;
+  ops[roots].=Z;
 
   #Z_children
   children=Children(j,PT)
-  ops[children]=Z;
+  ops[children].=Z;
 
   #Z_cousins
   cousins=YoungerCousins(j,PT)
-  ops[cousins]=Z;
+  ops[cousins].=Z;
 
   #X_j
   ops[j]=X;
 
   #X_ancestors
   elders=Ancestors(j,PT)
-  ops[elders]=X;
+  ops[elders].=X;
 
   return PauliList(1,ops)
 end
@@ -507,18 +507,18 @@ function d_op(j,PT::PTree)
 
   #Z_{DisjointRoots}
   roots=DisjointRoots(j,PT)
-  ops[roots]=Z;
+  ops[roots].=Z;
 
   #Z_cousins
   cousins=YoungerCousins(j,PT)
-  ops[cousins]=Z;
+  ops[cousins].=Z;
 
   #Y_j
   ops[j]=Y;
 
   #X_ancestors
   elders=Ancestors(j,PT)
-  ops[elders]=X;
+  ops[elders].=X;
 
   return PauliList(1,ops)
 end
@@ -587,7 +587,7 @@ end
 
 
 
-#HERE'S TEST CASES FROM arXiv:1208.5986
+#HERE'S TEST CASES FROM https://arxiv.org/pdf/1208.5986
 tree=BKTree(4);
 
 println("eq. 68")
@@ -600,10 +600,15 @@ println("eq. 70")
 Print(Wij(1,4,tree))
 
 println("eq. 74")
-Print(Tij(1,3,tree))
+Print(Multiply(ad_op(1,tree),a_op(3,tree)))
 
 println("eq. 76")
-Print(Tij(2,4,tree))
+Print(
+  Multiply(ad_op(1,tree),
+   Multiply(a_op(3,tree),
+    Multiply(ad_op(2,tree),
+            a_op(4,tree)
+            ))))
 
 println("eq. 77")
 Print(Wijkl(1,4,2,3,tree))
@@ -657,5 +662,5 @@ H1=Sum([Multiply(h00,nj(1,tree));
    Multiply((h0132),Wijkl(1,2,4,3,tree));
    Multiply(h0312,Wijkl(1,4,2,3,tree))
    ])
-println("eq. 76")
+println("eq. 79")
 Print(Sum([H1;H2]))
