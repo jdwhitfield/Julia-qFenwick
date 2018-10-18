@@ -2,7 +2,7 @@
 #
 #FENWICK+TREE.jl 
 # A small library for quantum simlation of fermions written in Julia.
-# Copyright (c) 2017 James Daniel Whitfield
+# Copyright (c) 2017-8 James Daniel Whitfield
 # Dartmouth College, Department of Physics and Astronomy
 #
 # see parity-qsim.pdf for an introduction to the techniques used here.
@@ -32,7 +32,7 @@
 #%#           Parity trees          #
 #%###################################
 #%ParityTree(num_of_sites,Parents)
-type PTree
+struct PTree
     M::Int64
     Parents::Array{Int64}
 end
@@ -45,23 +45,34 @@ end
 #%function DisjointRoots(  j,PT::PTree)
 #%function Progeny(        j,PT::PTree)
 
-
-function Ancestors(j,PT::PTree)
+function Ancestors(j,PT::PTree,verbose::Bool=false)
     A=[];
     cur=j;
     ctr=1;
     while ctr<1000
-        ctr=ctr+1
+        if(verbose)
+            println("ctr - ",ctr)
+        end
         if(PT.Parents[cur]==-1)
+            if(verbose)
+                println("breaking val of cur=",cur)
+            end
             break;
         else
             A=[A; PT.Parents[cur]];
             cur=PT.Parents[cur];
         end
+        
+        ctr=ctr+1
+    
     end
     if ctr>PT.M
+        if(verbose)
+            println("ctr - ",ctr,"; PT.M - ",PT.M)
+        end
         print("Warning, the loop didn't close automatically")
     end
+    
     return A;
 end
 
@@ -78,8 +89,6 @@ end
 function Progeny(j,tree::PTree)
   #children's children
   all_kids=[];
-
-
 
   ctr=0;
   g0kids=Children(j,tree);
@@ -129,6 +138,7 @@ function Progeny(j,tree::PTree)
 end
 
 function YoungerCousins(j,PT::PTree)
+    #children with same common ancestor are cousins
     K=[];
     A=Ancestors(j,PT)
     for k=1:length(A)
@@ -171,10 +181,11 @@ end
 
 
 function ShiftTreeIndices(shift,tree)
-  shifted_tree=tree+shift;
+
+  shifted_tree=tree.+shift;
 
   #if it used to be empty it needs to reset
-  shifted_tree[shifted_tree .== shift-1] =-1;
+  shifted_tree[shifted_tree .== shift-1] .=-1;
   return shifted_tree
 end
 
@@ -184,16 +195,16 @@ function CombineTrees(treeL,treeR)
   return [treeL;shifted_treeR]
 end
 
-function BetaMatrix(tree)
+function BetaMatrix(PT::PTree)
 
   #make MxM zeros matrix
-  B=zeros(Int64,tree.M,tree.M)
+  B=zeros(Int64,PT.M,PT.M)
 
   #for each node in tree
-  for j=1:tree.M
+  for j=1:PT.M
 
     #get progeny list
-    pj=Progeny(j,tree)
+    pj=Progeny(j,PT)
 
     #mark appropriate matrix elements
 
@@ -205,7 +216,7 @@ function BetaMatrix(tree)
 
     B[j,j]=1;
     for k=1:length(pj)
-      B[tree.M+1-j,tree.M+1-pj[k]]=1;
+      B[PT.M+1-j,PT.M+1-pj[k]]=1;
     end
 
   end
@@ -298,16 +309,23 @@ function SBKTree(M,L)
   return PTree(M,sktree);
 end
 
-function ParityTree(N)
+function ParityTree(M)
 
-  paritytree=-ones(N,1);
+  paritytree=-ones(M,1);
 
-  for i=1:(N-1)
+  for i=1:(M-1)
     paritytree[i]=i+1;
   end
 
   return PTree(M,paritytree);
 end
+
+
+#unit testing
+pt=ParityTree(3)
+ct=CombineTrees(pt.Parents,pt.Parents)
+@assert Array([2;3;-1;5;6;-1])≈ Array(ct) "unit test for CombineTrees failed"
+
 
 #%###################################
 #%           Spin algebra           #
@@ -468,7 +486,7 @@ end
 
 function MultiplyPauli(A,B)
   algebra=GetSpinAlgebra();
-  return alegbra[A,B];
+  return algebra[A,B];
 end
 
 #%###################################
@@ -496,10 +514,11 @@ end
 #%  PList        =  Sum(PList)
 
 #Pauli list
-if(!isdefined(Symbol("PauliList")))
-  type PauliList
-    Prefactor::Complex64
-    List::Array{Complex64}
+temp = @isdefined PauliList
+if( temp == false ) 
+  struct PauliList
+    Prefactor::Complex
+    List::Array{Complex}
   end
 end
 
