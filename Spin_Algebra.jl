@@ -1,12 +1,10 @@
 #%###################################
 #%
-#% Tensor algebra and Spin algebra  
+#% Tensor algebra and Spin algebra
 #%
-# A small library for quantum simlation of fermions written in Julia.
-# Copyright (c) 2017-8 James Daniel Whitfield
+# A library for quantum simlation of fermions written in Julia.
+# Copyright (c) 2017-9 James Daniel Whitfield
 # Dartmouth College, Department of Physics and Astronomy
-#
-# see parity-qsim.pdf for an introduction to the techniques used here.
 #
 ######################
 #Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,6 +25,139 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 ######################
+
+#%###################################
+#% Tensor algebra and Spin algebra  #
+#%###################################
+#%   The Pauli list consists of a complex prefactor and an array listing the
+#%   matrix ids in the Pauli string
+#%
+#%   Methods:
+#%       PrintPauliList(PauliList)
+#%       PrintPauliLists(PauliLists)
+
+#Pauli list
+temp = isdefined(Main,:PauliList)
+if( temp == false )
+  mutable struct PauliList
+    Prefactor::Complex
+    List::Array{Complex,1}
+  end
+end
+
+"""PRINTPAULILIST(pauli_list) is a function to print Pauli list. Optional IOStream"""
+function PrintPauliList(p::PauliList, io::IO = stdout)
+
+  #correct the state
+  P=StandardForm(p)
+
+  #These are the MatrixIDs for coding the algebra
+  I   =1;
+  X   =2;
+  Y   =3;
+  Z   =4;
+  P00 =5;
+  P01 =6;
+  P10 =7;
+  P11 =8;
+
+  """
+  You can stick strings together (a process often called concatenation) using the multiply (*) operator:
+    julia> "s" * "t"
+    "st"
+  If you've used other programming languages, you might expect to use the addition (+) operator:
+  """
+
+  #printing
+  print(io,"(")
+  if(real(P.Prefactor)>=0) #add plus sign to make it look better
+    print(io,"+")
+  end
+
+  """
+  # numbers can be converted to strings and formatted using printf
+  @printf "e = %0.2f\n" e
+  #> 2.718
+  """
+  print(io,P.Prefactor)
+
+  print(io,") ")
+  for i=1:length(P.List)
+    if(P.List[i]==I)
+      print(io,"  I  ")
+    end
+    if(P.List[i]==X)
+      print(io,"  X  ")
+    end
+    if(P.List[i]==Y)
+      print(io,"  Y  ")
+    end
+    if(P.List[i]==Z)
+      print(io,"  Z  ")
+    end
+    if(P.List[i]==P00)
+      print(io," P00 ")
+    end
+    if(P.List[i]==P01)
+      print(io," P01 ")
+    end
+    if(P.List[i]==P10)
+      print(io," P10 ")
+    end
+    if(P.List[i]==P11)
+      print(io," P11 ")
+    end
+  end
+  println(io,"")
+  return
+end
+
+"""PRINTPAULILISTS(pauli_list) is a function to print Pauli list"""
+function PrintPauliLists(arrayPL,io::IO=stdout)
+
+  if(string(typeof(arrayPL))=="PauliList")
+    arrayPL=[arrayPL];
+  end
+
+  if(length(arrayPL)==0)
+    print(io,"0")
+    return
+  end
+
+  if(string(typeof(arrayPL[1]))!="PauliList")
+    println(io,"Warning: bad input; expected array of PauliLists in function Print_sum")
+  end
+
+  for k=1:length(arrayPL)
+    if(k>1)
+      print(io,"    +")
+    else
+      print(io,"op = ")
+    end
+    Print(arrayPL[k],io)
+  end
+end
+
+"""Extended print function for Pauli lists and arrays of Pauli lists"""
+function Print(P,io::IO = stdout)
+  if(string(typeof(P))=="PauliList")
+    PrintPauliList(P,io)
+    return;
+  end
+  if( string(typeof(P))=="Array{PauliList,1}")
+    PrintPauliLists(P,io)
+    return;
+  end
+  if( string(typeof(P))=="Vector{PauliList}" )
+    PrintPauliLists(P,io)
+    return;
+  end
+
+  #println(typeof(P))
+  println(io,P)
+  return;
+end
+
 
 #%###################################
 #%We'll deal with systems of spin-half particles. These are governed by the
@@ -62,6 +193,7 @@ p10=[0. 0.; 1. 0.];
 p11=[0. 0.; 0. 1.];
 
 # We use integer MatrixIDs for coding the algebra
+# i,x,y,z,p_00,p_01,p_10,p_11 = 1,2,3,4,5,6,7,8
 I   =1;
 X   =2;
 Y   =3;
@@ -71,6 +203,14 @@ P01 =6;
 P10 =7;
 P11 =8;
 
+"""This function returns the full ALGEBRA stored in terms of Matrix IDs
+e.g.
+
+SA=GetSpinAlgebra()
+
+SA[P01,X] = 5     # MatrixID P00 = 5
+SA[X,Y]   = 4im   # MatrixID Z   = 4
+"""
 function GetSpinAlgebra()
 
    SPIN_ALGEBRA=zeros(Complex,8,8)
@@ -204,12 +344,12 @@ end
 #%
 #% Pauli list functions
 #%  PList        =  StandardForm(PList)
-#%  PList        =  Minus(Plist)
 #%  PList        =  MakeLocalOperator(MatrixID, tensor_index, num_spins)
 #%  PList        =  MultiplyPauliList(PauliL::PauliList,PauliR::PauliList)
 #%  PLists       =  MultiplyPauliLists(PauliSumL,PauliSumR)
-#%  PList        =  Sum(PList)
+#%  PList        =  SimplifySum(PList)
 
+"""Pulls all phases to the prefactor so that only real Matrix IDs remain in list"""
 function StandardForm(P::PauliList)
 
   #a little error catching to make sure MatrixIDs are okay
@@ -232,13 +372,14 @@ function StandardForm(P::PauliList)
   return P;
 end
 
-
+"""MakeLocalOperator(MatrixID, j, M) makes a PauliList with MatrixID at index j amongst M qubits"""
 function MakeLocalOperator(MatrixID, j, M)
   list=ones(M);
   list[j]=MatrixID;
   return PauliList(1,list)
 end
 
+"""Multiply function for two PauliLists"""
 function MultiplyPauliList(L::PauliList,R::PauliList)
   algebra=GetSpinAlgebra();
 
@@ -257,6 +398,7 @@ function MultiplyPauliList(L::PauliList,R::PauliList)
   return StandardForm(PauliList(F,out));
 end
 
+"""Multiply function for two arrays of PauliLists"""
 function MultiplyPauliLists(aL,aR)
   #Here aL and aR are the arrays of PauliLists
   out=Array{PauliList}([]);
@@ -269,23 +411,37 @@ function MultiplyPauliLists(aL,aR)
       end
     end
   end
-  return out;
+  return SimplifySum(out);
 end
 
 
+#=
+"""
+SimplifySum adds like list terms for simplification (S. Manski 2016, Whitfield 2019)
+input: unsimplified PauliList
+output: PauliList with combined like terms
+"""
+function Sum!(A,B)
 
-#adds like list terms for simplification (S. Manski 2016)
-#input: unsimplified PauliList
-#output: PauliList with combined like terms
-function Sum(arrayPL)
+  # the deep copy is done to disconnect the input to the addition from the original object
+  # otherwise the simplify sum will change the input values
+  arrayPL=deepcopy(arrayPLgiven);
+  #THIS IS A BOTTLE NECK IN MEMORY AND SPEED
 
   arrayA=PauliList[];
+
   for i=1:length(arrayPL)
-    for j=i+1:length(arrayPL)
-      if( arrayPL[i].List == arrayPL[j].List && arrayPL[i].Prefactor!=0)
-          arrayPL[i].Prefactor=arrayPL[i].Prefactor+arrayPL[j].Prefactor;
-          arrayPL[j].Prefactor=0;
+    if arrayPL[i].Prefactor!=0
+      #check if any other terms match
+      for j=i+1:length(arrayPL)
+
+        if( arrayPL[i].List == arrayPL[j].List )
+            arrayPL[i].Prefactor=arrayPL[i].Prefactor+arrayPL[j].Prefactor;
+            arrayPL[j].Prefactor=0;
+        end
+
       end
+
     end
     if(arrayPL[i].Prefactor!=0)
       push!(arrayA,arrayPL[i]);
@@ -294,15 +450,194 @@ function Sum(arrayPL)
   return arrayA
 end
 
+#doesn't modify B but will modify A
+function PlusEqual!(A,B)
+  arrayA=PauliList[];
 
+  for i=1:length(arrayPL)
+    if arrayPL[i].Prefactor!=0
+      #check if any other terms match
+      for j=i+1:length(arrayPL)
 
+        if( arrayPL[i].List == arrayPL[j].List )
+            arrayPL[i].Prefactor=arrayPL[i].Prefactor+arrayPL[j].Prefactor;
+            arrayPL[j].Prefactor=0;
+        end
+
+      end
+
+    end
+    if(arrayPL[i].Prefactor!=0)
+      push!(arrayA,arrayPL[i]);
+    end
+  end
+  return arrayA
+end
+=#
+"""
+Norm computes the L_1 coefficent norm of a PauliList or an array of PauliLists
+
+The L_1 coefficent norm for \$h= \\sum a_i h_i\$  is given by \$|h|_c = \\sum |a_i|\$.
+"""
+function Norm(arrayPL::Array{PauliList,1})
+  n = 0.0
+  for i=1:length(arrayPL)
+    n+=abs(arrayPL[i].Prefactor)
+  end
+  return n
+end
+
+function Norm(PL::PauliList)
+  return abs(PL.Prefactor)
+end
+
+"""
+SimplifySum adds like list terms for simplification (S. Manski 2016)
+input: unsimplified PauliList
+output: PauliList with combined like terms
+
+The deepcopy of this function goes against the idea of Julia as a pass-by-
+reference language.
+"""
+function SimplifySum(arrayPL::Array{PauliList,1})
+
+  # the deep copy is done to disconnect the input to the addition from the original object
+  # otherwise the simplify sum will change the input values
+
+  #ref=deepcopy(arrayPL);
+
+  arrayA=PauliList[];
+
+  #to avoid copying and editing the incoming list we'll add like terms and then
+  #when we combine them into the new array, we just the later summand altogether
+  #effectively zeroing the value without modifying the array.
+  skips=Int[]
+
+  for i=1:length(arrayPL)
+    #reset flag
+    flag=0
+
+    if i in skips || abs(arrayPL[i].Prefactor) < eps()
+      continue
+    end
+
+    #check if any other terms match
+    for j = i+1 : length(arrayPL)
+      if arrayPL[i].List == arrayPL[j].List
+        push!(skips,j)
+        flag=1
+        break
+      end
+    end
+
+    if flag == 0
+
+      push!(arrayA, arrayPL[i])
+
+    else
+
+      factor=arrayPL[i].Prefactor+arrayPL[skips[end]].Prefactor;
+      if abs(factor)>eps()
+        push!(arrayA, PauliList(factor,arrayPL[i].List))
+      end
+
+    end
+
+    #=
+    for k=1:length(ref)
+      if (ref[k].List != arrayPL[k].List) || (ref[k].Prefactor!=arrayPL[k].Prefactor)
+        println("warning")
+        print("arraypl\n")
+        println(arrayPL)
+        print("ref\n")
+        println(ref)
+      end
+    end
+    =#
+
+  end
+
+  return arrayA
+end
+
+"""
+SimplifySum adds like list terms for simplification (S. Manski 2016)
+input: unsimplified PauliList
+output: PauliList with combined like terms
+
+The deepcopy of this function goes against the idea of Julia as a pass-by-
+reference language.
+"""
+function SimplifySum_slow(arrayPLgiven)
+
+  # the deep copy is done to disconnect the input to the addition from the original object
+  # otherwise the simplify sum will change the input values
+  arrayPL=deepcopy(arrayPLgiven);
+
+  arrayA=PauliList[];
+
+  for i=1:length(arrayPL)
+    if arrayPL[i].Prefactor!=0
+
+      #check if any other terms match
+      for j=i+1:length(arrayPL)
+
+        if( arrayPL[i].List == arrayPL[j].List )
+            arrayPL[i].Prefactor=arrayPL[i].Prefactor+arrayPL[j].Prefactor;
+            arrayPL[j].Prefactor=0;
+        end
+      end
+
+    end
+    if(arrayPL[i].Prefactor!=0)
+      #push! is equivalent to Python's append. append! is equivalent to Python's extend.
+      push!(arrayA,arrayPL[i])
+    end
+  end
+
+  #=
+  if arrayA == SimplifySum_slow(arrayPLgiven)
+    println("Failure.\nSimplifySum\n")
+    println(arrayA)
+    println("SimplifySum2\n")
+    println(SimplifySum_slow(arrayPLgiven))
+  end
+  =#
+
+  return arrayA
+end
+
+"Returns maximum locality of an operator in PauliLists"
+function Locality(arrayPL)
+  if(string(typeof(arrayPL))=="PauliList")
+    arrayPL=[arrayPL];
+  end
+
+  locality=-9;
+
+  for k = 1 : length(arrayPL)
+    pl=arrayPL[k];
+    localityk=sum(pl.List .!=1)
+
+    if(localityk > locality)
+      locality=localityk
+    end
+  end
+
+  return locality
+end
 
 # Wrapper functions
 #  ans    =  Multiply(A,B)
-#  output =  Print(A)
 
-
-function Multiply(A,B)
+"""
+This function multiplies scalars, PauliLists, and vectors of PauliList without changing inputs
+"""
+function Multiply(Agiven,Bgiven)
+  # the deep copy is done to disconnect the input to the addition from the original object
+  # otherwise the simplify sum will change the input values
+  A=deepcopy(Agiven)
+  B=deepcopy(Bgiven)
 
   if typeof(A)<: Number
     #put the scalar second
@@ -310,7 +645,6 @@ function Multiply(A,B)
     A=B;
     B=temp;
   end
-
 
   if  typeof(A) <: Vector{PauliList} && typeof(B) <: Number
     for a in A
@@ -324,22 +658,60 @@ function Multiply(A,B)
     return A;
   end
 
+  if( string(typeof(A))== "PauliList" && (     string(typeof(B))== "Array{PauliList,1}"  ||      string(typeof(B))== "Vector{PauliList}" ) )
+		return MultiplyPauliList([A],B);
+	end
+
+  if( (     string(typeof(A))== "Array{PauliList,1}"  ||      string(typeof(A))== "Vector{PauliList}" ) && string(typeof(B))== "PauliList")
+		return MultiplyPauliList(A,[B]);
+	end
 
   if(string(typeof(A))== "PauliList" && string(typeof(B))== "PauliList")
-		return MultiplyPauliList(A,B)
+		return MultiplyPauliList(A,B);
 	end
 
 	if(   (     string(typeof(A))== "Array{PauliList,1}"  ||      string(typeof(A))== "Vector{PauliList}" )
            && (     string(typeof(B))== "Array{PauliList,1}"  ||      string(typeof(B))== "Vector{PauliList}" ))
-		return MultiplyPauliLists(A,B)
+		return MultiplyPauliLists(A,B);
 	end
 
-	println("Types: ",typeof(A)," , ",typeof(B))
+	#println("Types: ",typeof(A)," , ",typeof(B))
 	return A*B
 end
 
-#TODO OVERLOAD * TO USE Multiply
-#import Base.*
-#println(*(3,9))
+#overloading operators and the print function
+import Base.*
+Base.:*(A::PauliList, B::PauliList) = Multiply(A,B);
+Base.:*(A::Number, B::PauliList) = Multiply(A,B);
+Base.:*(A::PauliList, B::Number) = Multiply(A,B);
+Base.:*(A::Vector{PauliList}, B::Vector{PauliList}) = MultiplyPauliLists(A,B);
+Base.:*(A::Array{PauliList,1}, B::Array{PauliList,1}) = MultiplyPauliLists(A,B);
+Base.:*(A::Array{PauliList,1}, B::Vector{PauliList}) = MultiplyPauliLists(A,B);
+Base.:*(A::Vector{PauliList}, B::Array{PauliList,1}) = MultiplyPauliLists(A,B);
+Base.:*(A::Vector{PauliList}, B::Vector{PauliList}) = MultiplyPauliLists(A,B);
 
+import Base.+
+Base.:+(A::PauliList, B::PauliList) = SimplifySum([A;B])
+Base.:+(A::Array{PauliList,1}, B::PauliList) = SimplifySum([A;B])
+Base.:+(A::Array{PauliList,1}, B::Array{PauliList,1}) = SimplifySum([A;B])
+Base.:+(A::PauliList, B::Array{PauliList,1}) = SimplifySum([A;B])
+Base.:+(A::Vector{PauliList}, B::PauliList) = SimplifySum([A;B])
+Base.:+(A::PauliList, B::Vector{PauliList}) = SimplifySum([A;B])
 
+import Base.-
+Base.:-(A::PauliList, B::PauliList) = SimplifySum(A+(-1)*B)
+Base.:-(A::Vector{PauliList}, B::PauliList) = SimplifySum(A+(-1)*B)
+Base.:-(A::PauliList, B::Vector{PauliList}) = SimplifySum(A+(-1)*B)
+Base.:-(A::Array{PauliList,1}, B::Array{PauliList,1}) = SimplifySum(A+(-1)*B)
+Base.:-(A::Array{PauliList,1}, B::PauliList) = SimplifySum(A+(-1)*B)
+Base.:-(A::PauliList, B::Array{PauliList,1}) = SimplifySum(A+(-1)*B)
+
+import Base.print
+Base.:print(A::PauliList) = Print(A)
+Base.:print(A::Vector{PauliList}) = Print(A)
+Base.:print(A::Array{PauliList,1}) = Print(A)
+
+import Base.println
+Base.:println(A::PauliList) = Print(A) #+print("\n")
+Base.:println(A::Vector{PauliList}) = Print(A) #+print("\n")
+Base.:println(A::Array{PauliList,1}) = Print(A) #+print("\n")
