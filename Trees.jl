@@ -304,7 +304,8 @@ end
 
 "Shifts all indicies of a parity tree by a constant offset"
 function ShiftTree(shift,pt::PTree)
-  return CombineTrees(PTree(shift,-ones(Int,shift,1)),pt)
+  treeL = PTree(shift,-ones(Int,shift))
+  return CombineTrees(treeL,pt)
 end
 
 "Combines two parity tree"
